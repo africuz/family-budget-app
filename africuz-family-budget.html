@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Budget Control</title>
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="data:application/json,{%22name%22:%22Family%20Budget%20Control%22,%22short_name%22:%22BudgetApp%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23ffffff%22,%22theme_color%22:%22%232563eb%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ccircle%20cx='50'%20cy='50'%20r='40'%20fill='%232563eb'/%3E%3Ctext%20x='50'%20y='60'%20text-anchor='middle'%20fill='white'%20font-size='30'%20font-family='Arial'%3ER%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
+    
+    <!-- CORRECTED Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
+    
+    <!-- Chart.js for reports -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* Your original CSS remains exactly the same */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 420px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        
+        .user-info {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .setup-screen, .login-screen, .main-app {
+            padding: 20px;
+        }
+        
+        .setup-form, .login-form {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 50px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        
+        .btn-small {
+            width: auto;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        
+        .btn-edit {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        
+        .tabs {
+            display: flex;
+            background: #f8fafc;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            background: white;
+            color: #2563eb;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .summary-title {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .summary-amount {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        
+        .expense-card, .income-card, .debt-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #2563eb;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .card-title {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .card-amount {
+            font-weight: bold;
+            color: #059669;
+        }
+        
+        .expense-card .card-amount {
+            color: #dc2626;
+        }
+        
+        .debt-card {
+            border-left-color: #dc2626;
+        }
+        
+        .debt-card .card-amount {
+            color: #dc2626;
+        }
+        
+        .add-form {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .category-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .category-item {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .category-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .category-amount {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        
+        .category-budget {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        
+        .budget-alert {
+            font-size: 0.8rem;
+            color: #dc2626;
+            margin-top: 5px;
+        }
+        
+        .budget-warning {
+            font-size: 0.8rem;
+            color: #f59e0b;
+            margin-top: 5px;
+        }
+        
+        .transaction-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            background: white;
+            margin-bottom: 8px;
+            border-radius: 8px;
+        }
+        
+        .transaction-details {
+            flex: 1;
+        }
+        
+        .transaction-category {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .transaction-date {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        
+        .transaction-amount {
+            font-weight: bold;
+        }
+        
+        .income-amount {
+            color: #059669;
+        }
+        
+        .expense-amount {
+            color: #dc2626;
+        }
+        
+        .delete-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+        
+        .edit-btn {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .status-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 1000;
+        }
+        
+        .status-online {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status-offline {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .info-box {
+            background: #e0f2fe;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-box h4 {
+            color: #0369a1;
+            margin-bottom: 8px;
+        }
+        
+        .info-box p {
+            color: #0c4a6e;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+        
+        .step.active {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .step.completed {
+            background: #10b981;
+            color: white;
+        }
+        
+        #setupError {
+            background: #fef2f2;
+            border: 1px solid #dc2626;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .report-table th, .report-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .report-table th {
+            background: #f8fafc;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                max-width: 100%;
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .tabs {
+                font-size: 14px;
+            }
+            
+            .report-table {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="status-indicator" id="statusIndicator">Offline</div>
+    
+    <div class="container">
+        <!-- Setup Screen -->
+        <div id="setupScreen" class="setup-screen">
+            <div class="setup-form">
+                <div class="step-indicator">
+                    <div class="step active">1</div>
+                    <div class="step">2</div>
+                    <div class="step">3</div>
+                </div>
+                
+                <h2 style="text-align: center; margin-bottom: 20px; color: #1f2937;">Setup Firebase Database</h2>
+                
+                <div class="info-box">
+                    <h4>Step 1: Create Firebase Project</h4>
+                    <p>Go to <strong>console.firebase.google.com</strong> and create a new project. Enable Realtime Database in test mode.</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="firebaseConfig">Paste your Firebase Config:</label>
+                    <textarea id="firebaseConfig" placeholder='Paste the config object from Firebase console here, e.g. const firebaseConfig = { ... };' rows="10" autocomplete="off"></textarea>
+                </div>
+                
+                <div id="setupError" style="color: #dc2626; margin-top: 10px; display: none;"></div>
+                
+                <button class="btn" id="setupDatabaseBtn" onclick="setupFirebase()">Setup Database</button>
+                <div id="setupLoading" style="display: none; text-align: center; color: #2563eb; margin-top: 10px;">Loading...</div>
+                
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="skipSetup()">Skip Setup (Use Local Storage - Guest Mode)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Screen -->
+        <div id="loginScreen" class="login-screen hidden">
+            <div class="login-form">
+                <h2 style="text-align: center; margin-bottom: 30px; color: #1f2937;">Family Budget Control</h2>
+                
+                <!-- Email and Password fields -->
+                <div class="form-group">
+                    <label for="loginEmail">Email:</label>
+                    <input type="email" id="loginEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password:</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                </div>
+                
+                <!-- Family Code field -->
+                <div class="form-group">
+                    <label for="familyCode">Family Code (min 6 alphanumeric characters):</label>
+                    <input type="text" id="familyCode" placeholder="Enter shared family code" required minlength="6" pattern="[a-zA-Z0-9]+">
+                    <small style="color: #6b7280; font-size: 0.8rem; margin-top: 5px; display: block;">This code links your accounts to the same budget data</small>
+                </div>
+                
+                <div class="form-group" style="display: flex; align-items: center;">
+                    <input type="checkbox" id="rememberMe" checked>
+                    <label for="rememberMe" style="display: inline; margin-left: 8px;">Remember me</label>
+                </div>
+                
+                <button class="btn" onclick="loginUser()">Login</button>
+                <button class="btn btn-secondary" style="margin-top: 10px;" onclick="registerUser()">Register</button>
+                <div id="authError" style="color: #dc2626; margin-top: 10px; display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Main App -->
+        <div id="mainApp" class="main-app hidden">
+            <div class="header">
+                <h1>Family Budget</h1>
+                <div class="user-info" id="userInfo"></div>
+                <div style="margin-top: 10px;">
+                    <button class="btn btn-secondary btn-small" onclick="logout()">Logout</button>
+                    <button class="btn btn-danger btn-small" onclick="resetData()" style="margin-left: 10px;">Reset Data</button>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs" role="tablist">
+                <button class="tab active" onclick="showTab('overview')" role="tab" aria-selected="true">Overview</button>
+                <button class="tab" onclick="showTab('expenses')" role="tab" aria-selected="false">Expenses</button>
+                <button class="tab" onclick="showTab('income')" role="tab" aria-selected="false">Income</button>
+                <button class="tab" onclick="showTab('debt')" role="tab" aria-selected="false">Debt</button>
+                <button class="tab" onclick="showTab('reports')" role="tab" aria-selected="false">Reports</button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="overviewTab" class="tab-content active" role="tabpanel">
+                <div class="summary-card">
+                    <div class="summary-title">Available Balance</div>
+                    <div class="summary-amount" id="availableBalance">R 0.00</div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="color: #059669; font-weight: bold; font-size: 1.2rem;" id="totalIncome">R 0.00</div>
+                        <div style="font-size: 0.8rem; color: #6b7280;">Total Income</div>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="color: #dc2626; font-weight: bold; font-size: 1.2rem;" id="totalExpenses">R 0.00</div>
+                        <div style="font-size: 0.8rem; color: #6b7280;">Total Expenses</div>
+                    </div>
+                </div>
+
+                <div class="add-form">
+                    <h3 style="margin-bottom: 15px;">Filter Transactions</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="startDate">Start Date:</label>
+                            <input type="date" id="startDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="endDate">End Date:</label>
+                            <input type="date" id="endDate">
+                        </div>
+                    </div>
+                    <button class="btn" onclick="filterTransactions()">Filter</button>
+                    <button class="btn btn-secondary" onclick="resetFilter()" style="margin-top: 10px;">Reset Filter</button>
+                    <button class="btn btn-secondary" onclick="exportToCSV()" style="margin-top: 10px;">Export to CSV</button>
+                </div>
+
+                <h3 style="margin-bottom: 15px;">Recent Transactions</h3>
+                <div class="transaction-list" id="recentTransactions">
+                    <p style="text-align: center; color: #6b7280; padding: 20px;">No transactions yet</p>
+                </div>
+            </div>
+
+            <!-- Expenses Tab -->
+            <div id="expensesTab" class="tab-content" role="tabpanel">
+                <div class="add-form">
+                    <h3 style="margin-bottom: 15px;" id="expenseFormTitle">Add Expense</h3>
+                    <input type="hidden" id="expenseEditId">
+                    <div class="form-group">
+                        <label for="expenseCategory">Category:</label>
+                        <select id="expenseCategory" required>
+                            <option value="groceries">Groceries</option>
+                            <option value="petrol">Petrol</option>
+                            <option value="debit_orders">Debit Orders</option>
+                            <option value="school_fees">School Fees</option>
+                            <option value="car_allowance">Car Allowance</option>
+                            <option value="utilities">Utilities</option>
+                            <option value="insurance">Insurance</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="clothing">Clothing</option>
+                            <option value="medical">Medical</option>
+                            <option value="restaurants">Restaurants</option>
+                            <option value="transport">Transport</option>
+                            <option value="maintenance">Home Maintenance</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="expenseAmount">Amount (ZAR):</label>
+                            <input type="number" id="expenseAmount" step="0.01" placeholder="0.00" required min="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="expenseDate">Date:</label>
+                            <input type="date" id="expenseDate" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentMethod">Payment Method:</label>
+                        <select id="paymentMethod" required>
+                            <option value="absa_cheque_debit_card">Absa Cheque Debit Card</option>
+                            <option value="fnb_cheque_card">FNB Cheque Card</option>
+                            <option value="absa_credit_card">Absa Credit Card</option>
+                            <option value="discovery_credit_card">Discovery Credit Card</option>
+                            <option value="absa_bank_account">Absa Bank Account</option>
+                            <option value="fnb_bank_account">FNB Bank Account</option>
+                            <option value="discovery_bank_account">Discovery Bank Account</option>
+                            <option value="cash">Cash</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseDescription">Description (optional):</label>
+                        <input type="text" id="expenseDescription" placeholder="Description">
+                    </div>
+                    <button class="btn" id="expenseSubmitBtn" onclick="addOrUpdateExpense()">Add Expense</button>
+                    <button class="btn btn-secondary" id="cancelEditExpense" onclick="cancelEdit('expense')" style="display: none; margin-top: 10px;">Cancel Edit</button>
+                </div>
+
+                <div class="add-form">
+                    <h3 style="margin-bottom: 15px;">Set Budget Limits</h3>
+                    <div class="form-group">
+                        <label for="budgetCategory">Category:</label>
+                        <select id="budgetCategory">
+                            <option value="groceries">Groceries</option>
+                            <option value="petrol">Petrol</option>
+                            <option value="debit_orders">Debit Orders</option>
+                            <option value="school_fees">School Fees</option>
+                            <option value="car_allowance">Car Allowance</option>
+                            <option value="utilities">Utilities</option>
+                            <option value="insurance">Insurance</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="clothing">Clothing</option>
+                            <option value="medical">Medical</option>
+                            <option value="restaurants">Restaurants</option>
+                            <option value="transport">Transport</option>
+                            <option value="maintenance">Home Maintenance</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="budgetLimit">Monthly Budget Limit (ZAR):</label>
+                        <input type="number" id="budgetLimit" step="0.01" placeholder="0.00" min="0.01">
+                    </div>
+                    <button class="btn" onclick="setBudgetLimit()">Set Budget</button>
+                </div>
+
+                <div class="category-list" id="expenseCategories"></div>
+            </div>
+
+            <!-- Income Tab -->
+            <div id="incomeTab" class="tab-content" role="tabpanel">
+                <div class="add-form">
+                    <h3 style="margin-bottom: 15px;" id="incomeFormTitle">Add Income</h3>
+                    <input type="hidden" id="incomeEditId">
+                    <div class="form-group">
+                        <label for="incomeSource">Source:</label>
+                        <select id="incomeSource" required>
+                            <option value="salary_husband">Husband's Salary</option>
+                            <option value="salary_wife">Wife's Salary</option>
+                            <option value="bonus">Bonus</option>
+                            <option value="investment">Investment</option>
+                            <option value="freelance">Freelance</option>
+                            <option value="rental">Rental Income</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="incomeAmount">Amount (ZAR):</label>
+                            <input type="number" id="incomeAmount" step="0.01" placeholder="0.00" required min="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="incomeDate">Date:</label>
+                            <input type="date" id="incomeDate" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="incomePaymentMethod">Received Via:</label>
+                        <select id="incomePaymentMethod" required>
+                            <option value="absa_bank_account">Absa Bank Account</option>
+                            <option value="fnb_bank_account">FNB Bank Account</option>
+                            <option value="discovery_bank_account">Discovery Bank Account</option>
+                            <option value="absa_cheque_debit_card">Absa Cheque Debit Card</option>
+                            <option value="fnb_cheque_card">FNB Cheque Card</option>
+                            <option value="cash">Cash</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="incomeDescription">Description (optional):</label>
+                        <input type="text" id="incomeDescription" placeholder="Description">
+                    </div>
+                    <button class="btn" id="incomeSubmitBtn" onclick="addOrUpdateIncome()">Add Income</button>
+                    <button class="btn btn-secondary" id="cancelEditIncome" onclick="cancelEdit('income')" style="display: none; margin-top: 10px;">Cancel Edit</button>
+                </div>
+
+                <div id="incomeList"></div>
+            </div>
+
+            <!-- Debt Tab -->
+            <div id="debtTab" class="tab-content" role="tabpanel">
+                <div class="summary-card" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                    <div class="summary-title">Total Debt</div>
+                    <div class="summary-amount" id="totalDebt">R 0.00</div>
+                </div>
+
+                <div class="add-form">
+                    <h3 style="margin-bottom: 15px;" id="debtFormTitle">Add/Update Debt</h3>
+                    <input type="hidden" id="debtEditName">
+                    <div class="form-group">
+                        <label for="debtName">Debt Name:</label>
+                        <input type="text" id="debtName" placeholder="e.g., Credit Card, Home Loan" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="debtAmount">Amount (ZAR):</label>
+                        <input type="number" id="debtAmount" step="0.01" placeholder="0.00" required min="0.01">
+                    </div>
+                    <button class="btn" id="debtSubmitBtn" onclick="addOrUpdateDebt()">Add/Update Debt</button>
+                    <button class="btn btn-secondary" id="cancelEditDebt" onclick="cancelEdit('debt')" style="display: none; margin-top: 10px;">Cancel Edit</button>
+                </div>
+
+                <div class="add-form">
+                    <h3 style="margin-bottom: 15px;">Make Debt Payment</h3>
+                    <div class="form-group">
+                        <label for="debtSelect">Select Debt:</label>
+                        <select id="debtSelect" required>
+                            <option value="">Select a debt</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentAmount">Payment Amount (ZAR):</label>
+                        <input type="number" id="paymentAmount" step="0.01" placeholder="0.00" required min="0.01">
+                    </div>
+                    <button class="btn" onclick="makeDebtPayment()">Make Payment</button>
+                </div>
+
+                <div id="debtList"></div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reportsTab" class="tab-content" role="tabpanel">
+                <div class="add-form">
+                    <h3 style="margin-bottom: 15px;">Generate Report</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="reportType">Report Type:</label>
+                            <select id="reportType" onchange="populateReportPeriods()">
+                                <option value="monthly">Monthly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="reportPeriod">Period:</label>
+                            <select id="reportPeriod"></select>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="generateReport()">Generate Report</button>
+                </div>
+                <div id="reportOutput"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        let firebaseInitialized = false;
+        let database = null;
+        let auth = null;
+
+        // App State
+        let currentUID = '';
+        let familyCode = '';
+        let appData = {
+            income: [],
+            expenses: [],
+            debts: {},
+            transactions: [],
+            budgetLimits: {}
+        };
+
+        let inactivityTimer = null;
+        let currentFilter = { startDate: null, endDate: null };
+        let expenseChart = null; // For Chart.js
+
+        // Status management - ADDED MISSING FUNCTION
+        function updateStatus(status = null) {
+            const indicator = document.getElementById('statusIndicator');
+            if (status === 'online' || (firebaseInitialized && navigator.onLine)) {
+                indicator.textContent = 'Online';
+                indicator.className = 'status-indicator status-online';
+            } else if (status === 'local' || !firebaseInitialized) {
+                indicator.textContent = 'Local';
+                indicator.className = 'status-indicator status-offline';
+            } else {
+                indicator.textContent = 'Offline';
+                indicator.className = 'status-indicator status-offline';
+            }
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('expenseDate').value = today;
+            document.getElementById('incomeDate').value = today;
+            
+            // Check if Firebase SDK is loaded
+            if (typeof firebase === 'undefined') {
+                console.error('Firebase SDK not loaded');
+                document.getElementById('setupError').textContent = 'Failed to load Firebase SDK. Please check your internet connection.';
+                document.getElementById('setupError').style.display = 'block';
+                updateStatus('offline');
+                showSetupScreen();
+                return;
+            }
+            
+            // Check if Firebase config exists
+            const savedConfig = localStorage.getItem('budgetApp_firebaseConfig');
+            if (savedConfig) {
+                try {
+                    const config = JSON.parse(savedConfig);
+                    initializeFirebase(config);
+                } catch (e) {
+                    console.error('Invalid Firebase config:', e);
+                    localStorage.removeItem('budgetApp_firebaseConfig');
+                    document.getElementById('setupError').textContent = 'Invalid saved Firebase configuration. Please re-enter your Firebase config.';
+                    document.getElementById('setupError').style.display = 'block';
+                    showSetupScreen();
+                }
+            } else {
+                showSetupScreen();
+            }
+            
+            updateStatus();
+            window.addEventListener('beforeunload', clearSensitiveData);
+        });
+
+        // Initialize Firebase function
+        function initializeFirebase(config) {
+            try {
+                if (typeof firebase !== 'undefined') {
+                    if (firebase.apps.length === 0) {
+                        firebase.initializeApp(config);
+                    }
+                    database = firebase.database();
+                    auth = firebase.auth();
+                    firebaseInitialized = true;
+                    updateStatus('online');
+                    
+                    // Listen for authentication state changes
+                    auth.onAuthStateChanged(user => {
+                        if (user) {
+                            // User is signed in
+                            currentUID = user.uid;
+                            database.ref(`userProfiles/${user.uid}/familyCode`).once('value', snapshot => {
+                                const userFamilyCode = snapshot.val();
+                                if (userFamilyCode) {
+                                    familyCode = userFamilyCode;
+                                    document.getElementById('familyCode').value = familyCode;
+                                    showMainApp(user.email);
+                                    loadData();
+                                } else {
+                                    showLoginScreen();
+                                    document.getElementById('loginEmail').value = user.email;
+                                    displayAuthError('Please enter your shared family code to continue or register.');
+                                }
+                            });
+                        } else {
+                            // User is signed out
+                            setTimeout(() => {
+                                if (firebaseInitialized) {
+                                    showLoginScreen();
+                                } else {
+                                    showSetupScreen();
+                                }
+                            }, 500);
+                        }
+                    });
+                } else {
+                    throw new Error('Firebase SDK not loaded');
+                }
+            } catch (e) {
+                console.error('Firebase initialization error:', e);
+                firebaseInitialized = false;
+                showSetupScreen();
+                document.getElementById('setupError').textContent = 'Firebase initialization failed: ' + e.message;
+                document.getElementById('setupError').style.display = 'block';
+                updateStatus('offline');
+            }
+        }
+
+        // Clear sensitive data function
+        function clearSensitiveData() {
+            appData = { income: [], expenses: [], debts: {}, transactions: [], budgetLimits: {} };
+            currentUID = '';
+            familyCode = '';
+        }
+
+        // Setup Functions
+        function showSetupScreen() {
+            document.getElementById('setupScreen').classList.remove('hidden');
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+
+        function showLoginScreen() {
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('familyCode').value = '';
+            document.getElementById('authError').style.display = 'none';
+
+            const savedFamilyCode = localStorage.getItem('budgetApp_familyCode');
+            if(savedFamilyCode) {
+                document.getElementById('familyCode').value = savedFamilyCode;
+                document.getElementById('rememberMe').checked = true;
+            }
+        }
+
+        // Function to display authentication errors
+        function displayAuthError(message) {
+            const errorElement = document.getElementById('authError');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            
+            // Auto-hide error after 5 seconds
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 5000);
+        }
+
+        function setupFirebase() {
+            const configText = document.getElementById('firebaseConfig').value.trim();
+            const setupButton = document.getElementById('setupDatabaseBtn');
+            const loadingIndicator = document.getElementById('setupLoading');
+            const errorContainer = document.getElementById('setupError');
+            
+            if (!configText) {
+                errorContainer.textContent = 'Please paste your Firebase configuration';
+                errorContainer.style.display = 'block';
+                return;
+            }
+            
+            setupButton.disabled = true;
+            setupButton.textContent = 'Setting up...';
+            loadingIndicator.style.display = 'block';
+            errorContainer.style.display = 'none';
+            
+            try {
+                let objStr;
+                if (configText.startsWith('const firebaseConfig = ') || configText.startsWith('var firebaseConfig = ')) {
+                    const configMatch = configText.match(/=\s*({[\s\S]*});?\s*$/);
+                    if (configMatch) {
+                        objStr = configMatch[1];
+                    } else {
+                        throw new Error('Could not extract config object from variable declaration.');
+                    }
+                } else if (configText.startsWith('{')) {
+                    objStr = configText;
+                } else {
+                    throw new Error('Invalid config format. Please paste the full "const firebaseConfig = { ... };" or just the { ... } object.');
+                }
+                
+                // Parse as JS object literal
+                let config;
+                try {
+                    config = (new Function('return ' + objStr + ';'))();
+                } catch (parseError) {
+                    throw new Error('Failed to parse config object: ' + parseError.message);
+                }
+                
+                if (!config.apiKey || !config.authDomain || !config.databaseURL || !config.projectId) {
+                    throw new Error('Missing required Firebase config fields (apiKey, authDomain, databaseURL, projectId).');
+                }
+                
+                // Save config to localStorage
+                localStorage.setItem('budgetApp_firebaseConfig', JSON.stringify(config));
+                
+                initializeFirebase(config);
+                
+                // Force transition to login screen
+                setTimeout(() => {
+                    if (auth && firebaseInitialized) {
+                        const user = auth.currentUser;
+                        if (!user) {
+                            showLoginScreen();
+                        }
+                    } else {
+                        showLoginScreen();
+                    }
+                }, 1500);
+                
+                alert('Firebase setup successful! Redirecting to login...');
+                
+            } catch (e) {
+                console.error('Firebase setup error:', e);
+                errorContainer.textContent = 'Error setting up Firebase: ' + e.message;
+                errorContainer.style.display = 'block';
+            } finally {
+                setupButton.disabled = false;
+                setupButton.textContent = 'Setup Database';
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        function skipSetup() {
+            firebaseInitialized = false;
+            currentUID = 'guest_' + Math.random().toString(36).substr(2, 9);
+            familyCode = 'local_' + currentUID;
+            showMainApp('Guest (Local Mode)');
+            loadData();
+        }
+
+        function loginUser() {
+            if (!firebaseInitialized) {
+                displayAuthError('Firebase not initialized. Please setup Firebase first.');
+                return;
+            }
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const enteredFamilyCode = document.getElementById('familyCode').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            if (!email || !password || !enteredFamilyCode) {
+                displayAuthError('Please fill in all login fields.');
+                return;
+            }
+
+            if (enteredFamilyCode.length < 6 || !/^[a-zA-Z0-9]+$/.test(enteredFamilyCode)) {
+                displayAuthError('Family code must be at least 6 alphanumeric characters.');
+                return;
+            }
+
+            // Show loading state
+            const loginBtn = document.querySelector('#loginScreen .btn');
+            const originalText = loginBtn.textContent;
+            loginBtn.textContent = 'Logging in...';
+            loginBtn.disabled = true;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    const user = userCredential.user;
+                    currentUID = user.uid;
+                    return database.ref(`userProfiles/${user.uid}/familyCode`).once('value');
+                })
+                .then(snapshot => {
+                    const storedFamilyCode = snapshot.val();
+                    if (storedFamilyCode === enteredFamilyCode) {
+                        familyCode = enteredFamilyCode;
+                        if (rememberMe) {
+                            localStorage.setItem('budgetApp_familyCode', enteredFamilyCode);
+                        } else {
+                            localStorage.removeItem('budgetApp_familyCode');
+                        }
+                        // Success - auth.onAuthStateChanged will handle the transition
+                    } else {
+                        displayAuthError('Incorrect family code for this user or family code not linked.');
+                        return auth.signOut();
+                    }
+                })
+                .catch(error => {
+                    console.error('Login error:', error);
+                    displayAuthError('Login failed: ' + error.message);
+                })
+                .finally(() => {
+                    // Reset button state
+                    loginBtn.textContent = originalText;
+                    loginBtn.disabled = false;
+                });
+        }
+
+        function registerUser() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const familyCode = document.getElementById('familyCode').value;
+            
+            if (!email || !password || !familyCode) {
+                displayAuthError('Please fill in all fields.');
+                return;
+            }
+
+            if (familyCode.length < 6 || !/^[a-zA-Z0-9]+$/.test(familyCode)) {
+                displayAuthError('Family code must be at least 6 alphanumeric characters.');
+                return;
+            }
+
+            // Show loading state
+            const registerBtn = document.querySelector('#loginScreen .btn.btn-secondary');
+            const originalText = registerBtn.textContent;
+            registerBtn.textContent = 'Registering...';
+            registerBtn.disabled = true;
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    const user = userCredential.user;
+                    currentUID = user.uid;
+                    
+                    // Save family code to user profile
+                    return database.ref(`userProfiles/${user.uid}`).set({
+                        familyCode: familyCode,
+                        email: email,
+                        createdAt: firebase.database.ServerValue.TIMESTAMP
+                    });
+                })
+                .then(() => {
+                    familyCode = familyCode;
+                    localStorage.setItem('budgetApp_familyCode', familyCode);
+                    displayAuthError('Registration successful! You are now logged in.', 'success');
+                })
+                .catch(error => {
+                    console.error('Registration error:', error);
+                    displayAuthError('Registration failed: ' + error.message);
+                })
+                .finally(() => {
+                    // Reset button state
+                    registerBtn.textContent = originalText;
+                    registerBtn.disabled = false;
+                });
+        }
+
+        function logout() {
+            if (!confirm('Are you sure you want to logout?')) {
+                return;
+            }
+            
+            clearTimeout(inactivityTimer);
+            localStorage.removeItem('budgetApp_familyCode');
+            clearSensitiveData();
+            if (auth) {
+                auth.signOut().then(() => {
+                    console.log('User signed out.');
+                }).catch(error => {
+                    console.error('Error signing out:', error);
+                });
+            } else {
+                showLoginScreen();
+            }
+        }
+
+        function showMainApp(userEmail) {
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('userInfo').textContent = `Logged in as: ${userEmail}`;
+            updateDisplay();
+            resetInactivityTimer();
+            populateReportPeriods();
+
+            document.addEventListener('mousemove', resetInactivityTimer);
+            document.addEventListener('keydown', resetInactivityTimer);
+            document.addEventListener('scroll', resetInactivityTimer, true);
+        }
+
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                alert('Session expired due to inactivity. Logging out for security.');
+                logout();
+            }, 15 * 60 * 1000);
+        }
+
+        // ADDED MISSING DATA MANAGEMENT FUNCTIONS
+        function saveData() {
+            const dataToSave = {
+                ...appData,
+                lastModified: Date.now(),
+                modifiedBy: currentUID
+            };
+
+            if (firebaseInitialized && currentUID && familyCode && !currentUID.startsWith('guest_')) {
+                database.ref(`families/${familyCode}`).set(dataToSave)
+                    .then(() => {
+                        console.log('Data saved to Firebase');
+                        updateStatus('online');
+                    })
+                    .catch((error) => {
+                        console.error('Firebase save error:', error);
+                        updateStatus('offline');
+                        localStorage.setItem(`budgetApp_data_${familyCode}_${currentUID}`, JSON.stringify(dataToSave));
+                    });
+            } else {
+                console.log('Saving to local storage');
+                updateStatus('local');
+                localStorage.setItem(`budgetApp_data_${familyCode}_${currentUID}`, JSON.stringify(dataToSave));
+            }
+        }
+
+        function loadData() {
+            if (firebaseInitialized && currentUID && familyCode && !currentUID.startsWith('guest_')) {
+                database.ref(`families/${familyCode}`).on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        appData = {
+                            income: data.income || [],
+                            expenses: data.expenses || [],
+                            debts: data.debts || {},
+                            transactions: data.transactions || [],
+                            budgetLimits: data.budgetLimits || {}
+                        };
+                        updateDisplay();
+                        updateStatus('online');
+                    } else {
+                        console.log("No data found for this family code, initializing empty.");
+                        appData = { income: [], expenses: [], debts: {}, transactions: [], budgetLimits: {} };
+                        updateDisplay();
+                    }
+                }, error => {
+                    console.error("Firebase load error:", error);
+                    updateStatus('offline');
+                    loadLocalData();
+                });
+            } else {
+                loadLocalData();
+            }
+        }
+
+        function loadLocalData() {
+            updateStatus('local');
+            const savedData = localStorage.getItem(`budgetApp_data_${familyCode}_${currentUID}`);
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    appData = {
+                        income: data.income || [],
+                        expenses: data.expenses || [],
+                        debts: data.debts || {},
+                        transactions: data.transactions || [],
+                        budgetLimits: data.budgetLimits || {}
+                    };
+                } catch (e) {
+                    console.error('Error loading local data:', e);
+                }
+            }
+            updateDisplay();
+        }
+
+        // ADDED MISSING TAB NAVIGATION FUNCTION
+        function showTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const tabButtons = document.querySelectorAll('.tab');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            const activeBtn = document.querySelector(`button[onclick="showTab('${tabName}')"]`);
+            activeBtn.classList.add('active');
+            activeBtn.setAttribute('aria-selected', 'true');
+            
+            if (tabName === 'expenses') {
+                displayExpenseCategories();
+                cancelEdit('expense');
+            } else if (tabName === 'income') {
+                displayIncomeList();
+                cancelEdit('income');
+            } else if (tabName === 'debt') {
+                displayDebtList();
+                updateDebtSelect();
+                cancelEdit('debt');
+            } else if (tabName === 'overview') {
+                displayRecentTransactions();
+            } else if (tabName === 'reports') {
+                generateReport();
+            }
+        }
+
+        // ADDED MISSING BUDGET FUNCTION
+        function setBudgetLimit() {
+            const category = document.getElementById('budgetCategory').value;
+            const limit = parseFloat(document.getElementById('budgetLimit').value);
+            
+            if (!category || isNaN(limit) || limit <= 0) {
+                alert('Please select a category and enter a valid budget limit greater than 0.');
+                return;
+            }
+            
+            appData.budgetLimits[category] = limit;
+            document.getElementById('budgetLimit').value = '';
+            saveData();
+            displayExpenseCategories();
+            alert(`Budget limit for ${category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} set to R ${limit.toFixed(2)}`);
+        }
+
+        // ADDED MISSING TRANSACTION FUNCTIONS
+        function addOrUpdateExpense() {
+            const editId = document.getElementById('expenseEditId').value;
+            const category = document.getElementById('expenseCategory').value;
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+            const date = document.getElementById('expenseDate').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const description = document.getElementById('expenseDescription').value;
+            
+            if (!category || isNaN(amount) || !date || !paymentMethod || amount <= 0) {
+                alert('Please fill in all required fields with valid values (amount > 0)');
+                return;
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            if (date > today) {
+                if (!confirm('The date is in the future. Do you want to proceed?')) {
+                    return;
+                }
+            }
+            
+            const expense = {
+                id: editId ? parseInt(editId) : Date.now(),
+                category: category,
+                amount: amount,
+                date: date,
+                paymentMethod: paymentMethod,
+                description: description,
+                user: currentUID,
+                timestamp: Date.now()
+            };
+            
+            if (editId) {
+                const index = appData.expenses.findIndex(e => e.id === parseInt(editId));
+                if (index !== -1) {
+                    appData.expenses[index] = expense;
+                    alert('Expense updated successfully!');
+                }
+            } else {
+                appData.expenses.push(expense);
+                appData.transactions.unshift({
+                    id: Date.now() + 1,
+                    type: 'expense',
+                    category: category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    amount: amount,
+                    date: date,
+                    paymentMethod: paymentMethod,
+                    description: description,
+                    user: currentUID
+                });
+                alert('Expense added successfully!');
+            }
+            
+            cancelEdit('expense');
+            saveData();
+            updateDisplay();
+            displayExpenseCategories();
+        }
+
+        function addOrUpdateIncome() {
+            const editId = document.getElementById('incomeEditId').value;
+            const source = document.getElementById('incomeSource').value;
+            const amount = parseFloat(document.getElementById('incomeAmount').value);
+            const date = document.getElementById('incomeDate').value;
+            const paymentMethod = document.getElementById('incomePaymentMethod').value;
+            const description = document.getElementById('incomeDescription').value;
+            
+            if (!source || isNaN(amount) || !date || !paymentMethod || amount <= 0) {
+                alert('Please fill in all required fields with valid values (amount > 0)');
+                return;
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            if (date > today) {
+                if (!confirm('The date is in the future. Do you want to proceed?')) {
+                    return;
+                }
+            }
+            
+            const income = {
+                id: editId ? parseInt(editId) : Date.now(),
+                source: source,
+                amount: amount,
+                date: date,
+                paymentMethod: paymentMethod,
+                description: description,
+                user: currentUID,
+                timestamp: Date.now()
+            };
+            
+            if (editId) {
+                const index = appData.income.findIndex(i => i.id === parseInt(editId));
+                if (index !== -1) {
+                    appData.income[index] = income;
+                    alert('Income updated successfully!');
+                }
+            } else {
+                appData.income.push(income);
+                appData.transactions.unshift({
+                    id: Date.now() + 1,
+                    type: 'income',
+                    category: source.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    amount: amount,
+                    date: date,
+                    paymentMethod: paymentMethod,
+                    description: description,
+                    user: currentUID
+                });
+                alert('Income added successfully!');
+            }
+            
+            cancelEdit('income');
+            saveData();
+            updateDisplay();
+            displayIncomeList();
+        }
+
+        function addOrUpdateDebt() {
+            const editName = document.getElementById('debtEditName').value;
+            const name = document.getElementById('debtName').value.trim();
+            const amount = parseFloat(document.getElementById('debtAmount').value);
+            
+            if (!name || isNaN(amount) || amount <= 0) {
+                alert('Please fill in all required fields with valid values (amount > 0)');
+                return;
+            }
+            
+            if (editName && editName !== name) {
+                delete appData.debts[editName];
+            }
+            
+            appData.debts[name] = amount;
+            
+            cancelEdit('debt');
+            saveData();
+            updateDisplay();
+            displayDebtList();
+            updateDebtSelect();
+            
+            alert(editName ? 'Debt updated successfully!' : 'Debt added successfully!');
+        }
+
+        function makeDebtPayment() {
+            const debtName = document.getElementById('debtSelect').value;
+            const paymentAmount = parseFloat(document.getElementById('paymentAmount').value);
+            
+            if (!debtName || isNaN(paymentAmount) || paymentAmount <= 0) {
+                alert('Please select a debt and enter a valid payment amount > 0');
+                return;
+            }
+            
+            if (paymentAmount > appData.debts[debtName]) {
+                if (!confirm('Payment amount exceeds debt. Proceed and set debt to 0?')) {
+                    return;
+                }
+            }
+            
+            if (appData.debts[debtName] && paymentAmount > 0) {
+                appData.debts[debtName] = Math.max(0, appData.debts[debtName] - paymentAmount);
+                
+                const expense = {
+                    id: Date.now(),
+                    category: 'debt_payment',
+                    amount: paymentAmount,
+                    date: new Date().toISOString().split('T')[0],
+                    description: `Payment to ${debtName}`,
+                    user: currentUID,
+                    timestamp: Date.now()
+                };
+                
+                appData.expenses.push(expense);
+                
+                appData.transactions.unshift({
+                    id: Date.now() + 1,
+                    type: 'expense',
+                    category: 'Debt Payment',
+                    amount: paymentAmount,
+                    date: new Date().toISOString().split('T')[0],
+                    description: `Payment to ${debtName}`,
+                    user: currentUID
+                });
+                
+                if (appData.debts[debtName] === 0) {
+                    delete appData.debts[debtName];
+                }
+                
+                document.getElementById('paymentAmount').value = '';
+                
+                saveData();
+                updateDisplay();
+                displayDebtList();
+                updateDebtSelect();
+                
+                alert('Payment made successfully!');
+            }
+        }
+
+        // ADDED MISSING EDIT FUNCTIONS
+        function editExpense(id) {
+            const expense = appData.expenses.find(e => e.id === id);
+            if (expense) {
+                document.getElementById('expenseEditId').value = id;
+                document.getElementById('expenseCategory').value = expense.category;
+                document.getElementById('expenseAmount').value = expense.amount;
+                document.getElementById('expenseDate').value = expense.date;
+                document.getElementById('paymentMethod').value = expense.paymentMethod;
+                document.getElementById('expenseDescription').value = expense.description || '';
+                document.getElementById('expenseFormTitle').textContent = 'Edit Expense';
+                document.getElementById('expenseSubmitBtn').textContent = 'Update Expense';
+                document.getElementById('cancelEditExpense').style.display = 'block';
+            }
+        }
+
+        function editIncome(id) {
+            const income = appData.income.find(i => i.id === id);
+            if (income) {
+                document.getElementById('incomeEditId').value = id;
+                document.getElementById('incomeSource').value = income.source;
+                document.getElementById('incomeAmount').value = income.amount;
+                document.getElementById('incomeDate').value = income.date;
+                document.getElementById('incomePaymentMethod').value = income.paymentMethod;
+                document.getElementById('incomeDescription').value = income.description || '';
+                document.getElementById('incomeFormTitle').textContent = 'Edit Income';
+                document.getElementById('incomeSubmitBtn').textContent = 'Update Income';
+                document.getElementById('cancelEditIncome').style.display = 'block';
+            }
+        }
+
+        function editDebt(name) {
+            if (appData.debts[name]) {
+                document.getElementById('debtEditName').value = name;
+                document.getElementById('debtName').value = name;
+                document.getElementById('debtAmount').value = appData.debts[name];
+                document.getElementById('debtFormTitle').textContent = 'Edit Debt';
+                document.getElementById('debtSubmitBtn').textContent = 'Update Debt';
+                document.getElementById('cancelEditDebt').style.display = 'block';
+            }
+        }
+
+        function cancelEdit(type) {
+            if (type === 'expense') {
+                document.getElementById('expenseEditId').value = '';
+                document.getElementById('expenseCategory').value = 'groceries';
+                document.getElementById('expenseAmount').value = '';
+                document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('paymentMethod').value = 'absa_cheque_debit_card';
+                document.getElementById('expenseDescription').value = '';
+                document.getElementById('expenseFormTitle').textContent = 'Add Expense';
+                document.getElementById('expenseSubmitBtn').textContent = 'Add Expense';
+                document.getElementById('cancelEditExpense').style.display = 'none';
+            } else if (type === 'income') {
+                document.getElementById('incomeEditId').value = '';
+                document.getElementById('incomeSource').value = 'salary_husband';
+                document.getElementById('incomeAmount').value = '';
+                document.getElementById('incomeDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('incomePaymentMethod').value = 'absa_bank_account';
+                document.getElementById('incomeDescription').value = '';
+                document.getElementById('incomeFormTitle').textContent = 'Add Income';
+                document.getElementById('incomeSubmitBtn').textContent = 'Add Income';
+                document.getElementById('cancelEditIncome').style.display = 'none';
+            } else if (type === 'debt') {
+                document.getElementById('debtEditName').value = '';
+                document.getElementById('debtName').value = '';
+                document.getElementById('debtAmount').value = '';
+                document.getElementById('debtFormTitle').textContent = 'Add/Update Debt';
+                document.getElementById('debtSubmitBtn').textContent = 'Add/Update Debt';
+                document.getElementById('cancelEditDebt').style.display = 'none';
+            }
+        }
+
+        // ADDED MISSING DISPLAY FUNCTIONS
+        function updateDisplay() {
+            const totalIncome = appData.income.reduce((sum, item) => sum + item.amount, 0);
+            const totalExpenses = appData.expenses.reduce((sum, item) => sum + item.amount, 0);
+            const totalDebt = Object.values(appData.debts).reduce((sum, amount) => sum + amount, 0);
+            const availableBalance = totalIncome - totalExpenses;
+            
+            document.getElementById('totalIncome').textContent = `R ${totalIncome.toFixed(2)}`;
+            document.getElementById('totalExpenses').textContent = `R ${totalExpenses.toFixed(2)}`;
+            document.getElementById('totalDebt').textContent = `R ${totalDebt.toFixed(2)}`;
+            document.getElementById('availableBalance').textContent = `R ${availableBalance.toFixed(2)}`;
+            
+            const balanceElement = document.getElementById('availableBalance');
+            const balanceCard = balanceElement.closest('.summary-card');
+            if (availableBalance < 0) {
+                balanceCard.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+            } else {
+                balanceCard.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            }
+            
+            displayRecentTransactions();
+        }
+
+        function displayRecentTransactions() {
+            const container = document.getElementById('recentTransactions');
+            let transactions = appData.transactions.slice(0, 10);
+            
+            if (currentFilter.startDate && currentFilter.endDate) {
+                transactions = appData.transactions.filter(t => {
+                    return t.date >= currentFilter.startDate && t.date <= currentFilter.endDate;
+                }).slice(0, 10);
+            }
+            
+            if (transactions.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No transactions found</p>';
+                return;
+            }
+            
+            let html = '';
+            transactions.forEach(transaction => {
+                const amountClass = transaction.type === 'income' ? 'income-amount' : 'expense-amount';
+                const amountPrefix = transaction.type === 'income' ? '+' : '-';
+                const paymentMethodName = transaction.paymentMethod ? 
+                    transaction.paymentMethod.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
+                
+                html += `
+                    <div class="transaction-item">
+                        <div class="transaction-details">
+                            <div class="transaction-category">${transaction.category}</div>
+                            <div class="transaction-date">${new Date(transaction.date).toLocaleDateString()} • ${transaction.user}</div>
+                            ${paymentMethodName ? `<div style="font-size: 0.8rem; color: #059669;">Via: ${paymentMethodName}</div>` : ''}
+                            ${transaction.description ? `<div style="font-size: 0.8rem; color: #6b7280;">${transaction.description}</div>` : ''}
+                        </div>
+                        <div class="transaction-amount ${amountClass}">
+                            ${amountPrefix}R ${transaction.amount.toFixed(2)}
+                        </div>
+                        ${transaction.type !== 'expense' || transaction.category !== 'Debt Payment' ? `
+                            <button class="edit-btn" onclick="edit${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}(${transaction.id - 1})">Edit</button>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function displayExpenseCategories() {
+            const container = document.getElementById('expenseCategories');
+            const categories = {};
+            
+            appData.expenses.forEach(expense => {
+                if (!categories[expense.category]) {
+                    categories[expense.category] = { total: 0, items: [] };
+                }
+                categories[expense.category].total += expense.amount;
+                categories[expense.category].items.push(expense);
+            });
+            
+            let html = '';
+            for (const [category, data] of Object.entries(categories)) {
+                const categoryName = category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                let budgetStatus = '';
+                if (appData.budgetLimits[category]) {
+                    const monthYear = `${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}`;
+                    const monthlyTotal = appData.expenses
+                        .filter(e => e.category === category && e.date.startsWith(monthYear))
+                        .reduce((sum, e) => sum + e.amount, 0);
+                    if (monthlyTotal > appData.budgetLimits[category]) {
+                        budgetStatus = `<div class="budget-alert">Over budget by R ${(monthlyTotal - appData.budgetLimits[category]).toFixed(2)}</div>`;
+                    } else if (monthlyTotal >= appData.budgetLimits[category] * 0.9) {
+                        budgetStatus = `<div class="budget-warning">Approaching budget limit of R ${appData.budgetLimits[category].toFixed(2)}</div>`;
+                    } else {
+                        budgetStatus = `<div class="category-budget">Budget: R ${appData.budgetLimits[category].toFixed(2)}</div>`;
+                    }
+                }
+                
+                html += `
+                    <div class="category-item">
+                        <div class="category-name">${categoryName}</div>
+                        <div class="category-amount">R ${data.total.toFixed(2)}</div>
+                        <div class="category-budget">${data.items.length} transaction(s)</div>
+                        ${budgetStatus}
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html || '<p style="text-align: center; color: #6b7280; padding: 20px;">No expenses yet</p>';
+        }
+
+        function displayIncomeList() {
+            const container = document.getElementById('incomeList');
+            
+            if (appData.income.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No income recorded yet</p>';
+                return;
+            }
+            
+            let html = '';
+            appData.income.slice().reverse().forEach(income => {
+                const sourceName = income.source.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                html += `
+                    <div class="income-card">
+                        <div class="card-header">
+                            <div class="card-title">${sourceName}</div>
+                            <div class="card-amount">R ${income.amount.toFixed(2)}</div>
+                        </div>
+                        <div style="font-size: 0.8rem; color: #6b7280;">
+                            ${new Date(income.date).toLocaleDateString()} • ${income.user}
+                        </div>
+                        ${income.description ? `<div style="font-size: 0.9rem; margin-top: 5px;">${income.description}</div>` : ''}
+                        <div style="margin-top: 10px;">
+                            <button class="edit-btn btn-small" onclick="editIncome(${income.id})">Edit</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function displayDebtList() {
+            const container = document.getElementById('debtList');
+            
+            if (Object.keys(appData.debts).length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No debts recorded</p>';
+                return;
+            }
+            
+            let html = '';
+            for (const [name, amount] of Object.entries(appData.debts)) {
+                if (amount > 0) {
+                    html += `
+                        <div class="debt-card">
+                            <div class="card-header">
+                                <div class="card-title">${name}</div>
+                                <div class="card-amount">R ${amount.toFixed(2)}</div>
+                            </div>
+                            <div>
+                                <button class="edit-btn btn-small" onclick="editDebt('${name}')">Edit</button>
+                                <button class="delete-btn btn-small" onclick="deleteDebt('${name}')">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            container.innerHTML = html || '<p style="text-align: center; color: #6b7280; padding: 20px;">No outstanding debts</p>';
+        }
+
+        function deleteDebt(name) {
+            if (confirm(`Are you sure you want to delete the debt "${name}"?`)) {
+                delete appData.debts[name];
+                saveData();
+                displayDebtList();
+                updateDebtSelect();
+                updateDisplay();
+            }
+        }
+
+        function updateDebtSelect() {
+            const select = document.getElementById('debtSelect');
+            select.innerHTML = '<option value="">Select a debt</option>';
+            
+            for (const [name, amount] of Object.entries(appData.debts)) {
+                if (amount > 0) {
+                    select.innerHTML += `<option value="${name}">${name} (R ${amount.toFixed(2)})</option>`;
+                }
+            }
+        }
+
+        // ADDED MISSING FILTER FUNCTIONS
+        function filterTransactions() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                alert('Please select both start and end dates.');
+                return;
+            }
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('Start date must be before end date.');
+                return;
+            }
+            
+            currentFilter.startDate = startDate;
+            currentFilter.endDate = endDate;
+            displayRecentTransactions();
+        }
+
+        function resetFilter() {
+            currentFilter.startDate = null;
+            currentFilter.endDate = null;
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            displayRecentTransactions();
+        }
+
+        // ADDED MISSING REPORT FUNCTIONS
+        function populateReportPeriods() {
+            const reportPeriod = document.getElementById('reportPeriod');
+            const reportType = document.getElementById('reportType').value;
+            
+            reportPeriod.innerHTML = '';
+            
+            if (reportType === 'monthly') {
+                const months = [];
+                const now = new Date();
+                for (let i = 0; i < 12; i++) {
+                    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                    months.push(`<option value="${monthYear}">${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}</option>`);
+                }
+                reportPeriod.innerHTML = months.join('');
+            } else {
+                const years = [];
+                const now = new Date();
+                for (let i = now.getFullYear() - 5; i <= now.getFullYear(); i++) {
+                    years.push(`<option value="${i}">${i}</option>`);
+                }
+                reportPeriod.innerHTML = years.join('');
+            }
+        }
+
+        function generateReport() {
+            const reportType = document.getElementById('reportType').value;
+            const period = document.getElementById('reportPeriod').value;
+            const output = document.getElementById('reportOutput');
+            
+            if (!period) {
+                output.innerHTML = '<p style="text-align: center; color: #6b7280;">Please select a period.</p>';
+                return;
+            }
+            
+            let filteredTransactions = appData.transactions;
+            if (reportType === 'monthly') {
+                const [year, month] = period.split('-');
+                filteredTransactions = appData.transactions.filter(t => {
+                    const date = new Date(t.date);
+                    return date.getFullYear() === parseInt(year) && date.getMonth() + 1 === parseInt(month);
+                });
+            } else {
+                filteredTransactions = appData.transactions.filter(t => {
+                    return new Date(t.date).getFullYear() === parseInt(period);
+                });
+            }
+            
+            const incomeBySource = {};
+            const expensesByCategory = {};
+            let totalIncome = 0;
+            let totalExpenses = 0;
+            
+            filteredTransactions.forEach(t => {
+                if (t.type === 'income') {
+                    incomeBySource[t.category] = (incomeBySource[t.category] || 0) + t.amount;
+                    totalIncome += t.amount;
+                } else {
+                    expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.amount;
+                    totalExpenses += t.amount;
+                }
+            });
+            
+            const totalDebt = Object.values(appData.debts).reduce((sum, amount) => sum + amount, 0);
+            
+            let html = `
+                <h3>${reportType === 'monthly' ? document.getElementById('reportPeriod').options[document.getElementById('reportPeriod').selectedIndex].text : period} Report</h3>
+                <table class="report-table">
+                    <tr><th>Summary</th><th>Amount</th></tr>
+                    <tr><td>Total Income</td><td>R ${totalIncome.toFixed(2)}</td></tr>
+                    <tr><td>Total Expenses</td><td>R ${totalExpenses.toFixed(2)}</td></tr>
+                    <tr><td>Net Balance</td><td>R ${(totalIncome - totalExpenses).toFixed(2)}</td></tr>
+                    <tr><td>Total Debt</td><td>R ${totalDebt.toFixed(2)}</td></tr>
+                </table>
+                <h4 style="margin-top: 20px;">Income by Source</h4>
+                <table class="report-table">
+                    <tr><th>Source</th><th>Amount</th></tr>
+                    ${Object.entries(incomeBySource).map(([source, amount]) => `
+                        <tr><td>${source}</td><td>R ${amount.toFixed(2)}</td></tr>
+                    `).join('') || '<tr><td colspan="2">No income recorded</td></tr>'}
+                </table>
+                <h4 style="margin-top: 20px;">Expenses by Category</h4>
+                <table class="report-table">
+                    <tr><th>Category</th><th>Amount</th></tr>
+                    ${Object.entries(expensesByCategory).map(([category, amount]) => `
+                        <tr><td>${category}</td><td>R ${amount.toFixed(2)}</td></tr>
+                    `).join('') || '<tr><td colspan="2">No expenses recorded</td></tr>'}
+                </table>
+                <h4 style="margin-top: 20px;">Expenses Breakdown</h4>
+                <canvas id="expenseChart" style="max-height: 300px; width: 100%;"></canvas>
+            `;
+            
+            output.innerHTML = html;
+
+            // Destroy previous chart if exists
+            if (expenseChart) {
+                expenseChart.destroy();
+            }
+
+            if (Object.keys(expensesByCategory).length > 0) {
+                const ctx = document.getElementById('expenseChart').getContext('2d');
+                expenseChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(expensesByCategory),
+                        datasets: [{
+                            data: Object.values(expensesByCategory),
+                            backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', '#ff9f40', '#ffcd56', '#36a2eb', '#4bc0c0', '#9966ff', '#ff6384', '#ff9f40']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Expenses by Category'
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // ADDED MISSING EXPORT FUNCTION
+        function exportToCSV() {
+            const headers = ['Type', 'Category', 'Amount', 'Date', 'Payment Method', 'Description', 'User'];
+            const rows = appData.transactions.map(t => [
+                t.type,
+                t.category,
+                t.amount.toFixed(2),
+                t.date,
+                t.paymentMethod ? t.paymentMethod.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '',
+                t.description || '',
+                t.user
+            ]);
+            
+            let csvContent = 'data:text/csv;charset=utf-8,' 
+                + headers.join(',') + '\n'
+                + rows.map(row => row.map(val => `"${val.replace(/"/g, '""')}"`).join(',')).join('\n');
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `budget_transactions_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // ADDED MISSING RESET DATA FUNCTION
+        function resetData() {
+            if (!confirm('Are you sure you want to reset all data? This will clear all income, expenses, debts, and transactions.')) {
+                return;
+            }
+            
+            appData = {
+                income: [],
+                expenses: [],
+                debts: {},
+                transactions: [],
+                budgetLimits: {}
+            };
+            localStorage.removeItem(`budgetApp_data_${familyCode}_${currentUID}`);
+            if (firebaseInitialized && database && !currentUID.startsWith('guest_')) {
+                database.ref(`families/${familyCode}`).remove()
+                    .then(() => console.log('Firebase data cleared'))
+                    .catch(e => console.error('Error clearing Firebase data:', e));
+            }
+            updateDisplay();
+            displayExpenseCategories();
+            displayIncomeList();
+            displayDebtList();
+            updateDebtSelect();
+            alert('All data has been reset.');
+        }
+    </script>
+</body>
+</html>
